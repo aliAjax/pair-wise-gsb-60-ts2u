@@ -33,6 +33,9 @@
         <div>
           <p class="text-xs font-medium text-surface-500-400">{typeLabels[item.type]}</p>
           <h4 class="mt-1 font-semibold">{item.title}</h4>
+          {#if item.originSignalId}
+            <p class="mt-1 text-xs font-medium text-success-700">合并自来源信号 {item.originSignalId}</p>
+          {/if}
         </div>
         <span class="badge">{strengthLabels[item.strength]}</span>
       </div>

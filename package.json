@@ -7,7 +7,8 @@
     "dev": "vite --host 0.0.0.0 --port 18460",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 18460",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test:merge": "node scripts/run-merge-test.mjs"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^2.11.0",

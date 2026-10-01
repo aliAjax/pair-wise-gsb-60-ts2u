@@ -52,7 +52,12 @@
           <span class="text-xs text-surface-500-400">{entry.createdAt.slice(0, 16).replace('T', ' ')}</span>
         </div>
         <p class="mt-1 text-sm text-surface-600-300">{entry.detail}</p>
-        <p class="mt-1 text-xs text-surface-500-400">{entry.signalId} · {entry.product}</p>
+        <p class="mt-1 text-xs text-surface-500-400">
+          {entry.signalId} · {entry.product}
+          {#if entry.originSignalId}
+            · <span class="font-medium text-success-700">原始记录来自 {entry.originSignalId}</span>
+          {/if}
+        </p>
       </article>
     {/each}
   </div>

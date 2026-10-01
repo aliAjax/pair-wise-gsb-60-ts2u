@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+  import MergePanel from '$lib/components/MergePanel.svelte';
   import SignalTable from '$lib/components/SignalTable.svelte';
   import type { SignalCase, SignalFilters } from '$lib/models/signal';
   import { listSignals } from '$lib/services/signal-service';
@@ -17,6 +18,8 @@
     sourceType: 'all'
   };
   let showCreate = false;
+  let showMerge = false;
+  let selectedIds: string[] = [];
 
   const query = createQuery({
     queryKey: ['signals', filters],
@@ -28,6 +31,11 @@
     counts[signal.status] = (counts[signal.status] ?? 0) + 1;
     return counts;
   }, {});
+  $: selectedCount = selectedIds.length;
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ['signals'] });
+  }
 </script>
 
 <svelte:head><title>信号台账 | 医疗器械安全信号核查平台</title></svelte:head>
@@ -37,9 +45,14 @@
     <h1 class="text-2xl font-semibold">信号台账</h1>
     <p class="mt-1 text-sm text-surface-600-300">筛选、聚类并跟踪全部产品安全信号。</p>
   </div>
-  <button class="btn variant-filled-primary" type="button" on:click={() => (showCreate = !showCreate)}>
-    {showCreate ? '收起登记表' : '登记新信号'}
-  </button>
+  <div class="flex flex-wrap gap-2">
+    <button class="btn variant-soft-secondary" type="button" on:click={() => (showMerge = true)}>
+      合并选中信号{selectedCount > 0 ? `（${selectedCount}）` : ''}
+    </button>
+    <button class="btn variant-filled-primary" type="button" on:click={() => (showCreate = !showCreate)}>
+      {showCreate ? '收起登记表' : '登记新信号'}
+    </button>
+  </div>
 </div>
 
 {#if showCreate}
@@ -151,11 +164,15 @@
       </select>
     </label>
   </div>
-  <div class="mt-3 flex flex-wrap gap-3 text-xs text-surface-500-400">
+  <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-surface-500-400">
     <span>筛选结果 {signals.length} 项</span>
     <span>调查中 {statusCounts.investigating ?? 0}</span>
     <span>待处置 {statusCounts.action_required ?? 0}</span>
     <span>已关闭 {statusCounts.closed ?? 0}</span>
+    {#if selectedCount > 0}
+      <span class="font-medium text-primary-700-300">已勾选 {selectedCount} 个信号用于合并</span>
+      <button class="underline" type="button" on:click={() => (selectedIds = [])}>清空选择</button>
+    {/if}
   </div>
 </section>
 
@@ -165,6 +182,19 @@
   {:else if $query.isError}
     <div class="p-8 text-center text-error-700">信号台账读取失败。</div>
   {:else}
-    <SignalTable {signals} />
+    <SignalTable
+      {signals}
+      selectable
+      bind:selectedIds
+    />
   {/if}
 </section>
+
+{#if showMerge}
+  <MergePanel
+    {signals}
+    selectedIds={[...selectedIds]}
+    onClose={() => (showMerge = false)}
+    onChanged={invalidate}
+  />
+{/if}

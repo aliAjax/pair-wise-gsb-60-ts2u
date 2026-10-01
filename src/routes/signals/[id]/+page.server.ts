@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { evidenceSchema, transitionSchema, versionSchema } from '$lib/models/signal';
+import { evidenceSchema, reviewIncomingVersionSchema, transitionSchema, versionSchema } from '$lib/models/signal';
 
 export function load({ params }) {
   return { id: params.id };
@@ -42,7 +42,8 @@ export const actions = {
         note: parsed.data.note,
         createdAt: new Date().toISOString()
       },
-      actor: actorName(formData)
+      actor: actorName(formData),
+      revision: parsed.data.revision
     };
   },
 
@@ -62,7 +63,8 @@ export const actions = {
         rationale: parsed.data.rationale,
         createdAt: new Date().toISOString()
       },
-      actor: parsed.data.author
+      actor: parsed.data.author,
+      revision: parsed.data.revision
     };
   },
 
@@ -77,6 +79,17 @@ export const actions = {
     return {
       success: true,
       reopen: { id, actor, reason, createdAt: new Date().toISOString() }
+    };
+  },
+
+  reviewIncoming: async ({ request }) => {
+    const formData = await request.formData();
+    const parsed = reviewIncomingVersionSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) return failure(parsed.error);
+
+    return {
+      success: true,
+      reviewIncoming: parsed.data
     };
   }
 };

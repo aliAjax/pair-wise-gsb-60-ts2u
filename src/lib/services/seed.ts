@@ -78,6 +78,7 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-09-24T10:00:00.000Z'
       }
     ],
+    incomingVersions: [],
     audit: [
       {
         id: 'A-018-01',
@@ -94,7 +95,9 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-09-10T03:00:00.000Z'
       }
     ],
-    reopenedCount: 0
+    reopenedCount: 0,
+    revision: 7,
+    mergedSources: []
   },
   {
     id: 'SIG-2026-015',
@@ -156,6 +159,7 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-09-25T04:25:00.000Z'
       }
     ],
+    incomingVersions: [],
     audit: [
       {
         id: 'A-015-01',
@@ -165,7 +169,9 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-08-23T05:00:00.000Z'
       }
     ],
-    reopenedCount: 0
+    reopenedCount: 0,
+    revision: 4,
+    mergedSources: []
   },
   {
     id: 'SIG-2026-011',
@@ -217,6 +223,7 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-08-18T09:30:00.000Z'
       }
     ],
+    incomingVersions: [],
     audit: [
       {
         id: 'A-011-01',
@@ -226,7 +233,9 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-08-18T09:30:00.000Z'
       }
     ],
-    reopenedCount: 0
+    reopenedCount: 0,
+    revision: 3,
+    mergedSources: []
   },
   {
     id: 'SIG-2026-019',
@@ -295,6 +304,7 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-09-28T11:40:00.000Z'
       }
     ],
+    incomingVersions: [],
     audit: [
       {
         id: 'A-019-01',
@@ -304,6 +314,8 @@ export const seedSignals: SignalCase[] = [
         createdAt: '2026-09-28T11:40:00.000Z'
       }
     ],
-    reopenedCount: 0
+    reopenedCount: 0,
+    revision: 5,
+    mergedSources: []
   }
 ];

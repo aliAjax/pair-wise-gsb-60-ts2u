@@ -31,7 +31,11 @@
 
 <section class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
   {#each visibleSignals as signal}
-    <article class="rounded border border-surface-300-700 bg-surface-100-900 p-4">
+    <article
+      class="rounded border bg-surface-100-900 p-4 {signal.mergedInto
+        ? 'border-warning-300 opacity-80'
+        : 'border-surface-300-700'}"
+    >
       <div class="flex items-start justify-between gap-3">
         <div>
           <p class="text-sm text-surface-500-400">{signal.product}</p>
@@ -39,6 +43,20 @@
         </div>
         <RiskBadge risk={signal.riskLevel} status={signal.status} />
       </div>
+      {#if signal.mergedInto}
+        <p class="mt-3 rounded bg-warning-50 p-2 text-xs text-warning-900">
+          该信号已并入
+          <a class="font-medium underline" href={`/signals/${signal.mergedInto.masterSignalId}`}>
+            {signal.mergedInto.masterSignalId}
+          </a>
+          ，批号判断以主信号为准（只读留痕）。
+        </p>
+      {/if}
+      {#if signal.mergedSources.length > 0}
+        <p class="mt-3 rounded bg-success-50 p-2 text-xs text-success-900">
+          主信号：已统一 {signal.mergedSources.length} 个来源信号的批号覆盖（{signal.affectedBatches.join('、')}）。
+        </p>
+      {/if}
       <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
           <dt class="text-surface-500-400">报告数量</dt>
