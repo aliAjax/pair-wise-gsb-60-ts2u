@@ -47,7 +47,21 @@
           <td>{signal.owner}</td>
           <td>{signal.updatedAt.slice(0, 10)}</td>
           <td>
-            <a class="btn btn-sm variant-soft-primary" href={`/signals/${signal.id}`}>打开核查</a>
+            <div class="flex flex-wrap gap-2">
+              <a class="btn btn-sm variant-soft-primary" href={`/signals/${signal.id}`}>打开核查</a>
+              {#if signal.status !== 'merged'}
+                <a
+                  class="btn btn-sm variant-ghost-surface"
+                  href={`/signals/merge?primary=${encodeURIComponent(signal.id)}`}
+                >
+                  作为主信号合并
+                </a>
+              {:else}
+                <a class="btn btn-sm variant-ghost-surface" href={`/signals/${signal.mergedInto}`}>
+                  去向 {signal.mergedInto}
+                </a>
+              {/if}
+            </div>
           </td>
         </tr>
       {:else}

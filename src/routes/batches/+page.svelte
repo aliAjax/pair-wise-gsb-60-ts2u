@@ -3,10 +3,12 @@
   import { signalStore } from '$lib/stores/signal-store';
 
   $: signals = $signalStore;
+  // 已并入主信号的来源信号为只读去向，批次覆盖统一在主信号上查看，避免重复计数
+  $: activeSignals = signals.filter((signal) => signal.status !== 'merged');
   let selectedBatch = 'all';
 
-  $: batches = Array.from(new Set(signals.flatMap((signal) => signal.affectedBatches))).sort();
-  $: visibleSignals = signals.filter(
+  $: batches = Array.from(new Set(activeSignals.flatMap((signal) => signal.affectedBatches))).sort();
+  $: visibleSignals = activeSignals.filter(
     (signal) => selectedBatch === 'all' || signal.affectedBatches.includes(selectedBatch)
   );
 </script>

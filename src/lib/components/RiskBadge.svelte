@@ -17,7 +17,8 @@
     observed: '观察中',
     action_required: '待处置',
     review: '复核中',
-    closed: '已关闭'
+    closed: '已关闭',
+    merged: '已并入主信号'
   };
 
   const riskClass: Record<RiskLevel, string> = {

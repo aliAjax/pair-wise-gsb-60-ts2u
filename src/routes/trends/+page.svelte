@@ -3,6 +3,7 @@
   import { signalStore } from '$lib/stores/signal-store';
 
   $: signals = $signalStore;
+  $: activeSignals = signals.filter((signal) => signal.status !== 'merged');
   const trendPoints = [
     { label: '2026-04', value: 0.18, threshold: 0.75 },
     { label: '2026-05', value: 0.31, threshold: 0.75 },
@@ -64,7 +65,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each signals.filter((signal) => signal.occurrenceRate >= 0.75) as signal}
+        {#each activeSignals.filter((signal) => signal.occurrenceRate >= 0.75) as signal}
           <tr>
             <td>{signal.id}</td>
             <td>{signal.product}</td>

@@ -3,23 +3,24 @@
   import { signalStore } from '$lib/stores/signal-store';
 
   $: signals = $signalStore;
-  $: openSignals = signals.filter((signal) => signal.status !== 'closed');
-  $: criticalSignals = signals.filter(
+  $: activeSignals = signals.filter((signal) => signal.status !== 'merged');
+  $: openSignals = activeSignals.filter((signal) => signal.status !== 'closed');
+  $: criticalSignals = activeSignals.filter(
     (signal) => signal.riskLevel === 'critical' || signal.riskLevel === 'high'
   );
-  $: overdueTasks = signals.flatMap((signal) =>
+  $: overdueTasks = activeSignals.flatMap((signal) =>
     signal.tasks
       .filter((task) => task.status !== 'done' && task.dueAt < new Date().toISOString().slice(0, 10))
       .map((task) => ({ ...task, signalId: signal.id }))
   );
 
   $: metrics = [
-    { label: '开放信号', value: openSignals.length, note: '含调查、观察与处置队列' },
+    { label: '开放信号', value: openSignals.length, note: '含调查、观察与处置队列；已并入信号只读不计入' },
     { label: '高及以上风险', value: criticalSignals.length, note: '需复核人优先确认' },
     {
       label: '未关闭任务',
-      value: signals.flatMap((signal) => signal.tasks).filter((task) => task.status !== 'done').length,
-      note: '跨信号调查任务'
+      value: activeSignals.flatMap((signal) => signal.tasks).filter((task) => task.status !== 'done').length,
+      note: '跨信号调查任务（合并后统一在主信号）'
     },
     { label: '逾期任务', value: overdueTasks.length, note: '按任务截止日计算' }
   ];
@@ -56,7 +57,7 @@
       <a class="text-sm text-primary-700-300 hover:underline" href="/signals">查看全部</a>
     </div>
     <div class="divide-y divide-surface-300-700">
-      {#each signals.slice(0, 4) as signal}
+      {#each activeSignals.slice(0, 4) as signal}
         <a class="block px-4 py-4 hover:bg-surface-200-800" href={`/signals/${signal.id}`}>
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -79,7 +80,7 @@
       <p class="text-xs text-surface-500-400">优先处理逾期及高风险事项</p>
     </div>
     <div class="space-y-4 p-4">
-      {#each signals.flatMap((signal) => signal.tasks.map((task) => ({ ...task, signalId: signal.id }))).filter((task) => task.status !== 'done').slice(0, 5) as task}
+      {#each activeSignals.flatMap((signal) => signal.tasks.map((task) => ({ ...task, signalId: signal.id }))).filter((task) => task.status !== 'done').slice(0, 5) as task}
         <div class="border-l-2 border-amber-500 pl-3">
           <p class="text-sm font-medium">{task.title}</p>
           <p class="mt-1 text-xs text-surface-500-400">{task.signalId} · {task.owner} · 截止 {task.dueAt}</p>

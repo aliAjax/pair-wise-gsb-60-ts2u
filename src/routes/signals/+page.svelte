@@ -37,9 +37,12 @@
     <h1 class="text-2xl font-semibold">信号台账</h1>
     <p class="mt-1 text-sm text-surface-600-300">筛选、聚类并跟踪全部产品安全信号。</p>
   </div>
-  <button class="btn variant-filled-primary" type="button" on:click={() => (showCreate = !showCreate)}>
-    {showCreate ? '收起登记表' : '登记新信号'}
-  </button>
+  <div class="flex gap-2">
+    <a class="btn variant-soft-primary" href="/signals/merge">发起信号合并</a>
+    <button class="btn variant-filled-primary" type="button" on:click={() => (showCreate = !showCreate)}>
+      {showCreate ? '收起登记表' : '登记新信号'}
+    </button>
+  </div>
 </div>
 
 {#if showCreate}
@@ -128,6 +131,7 @@
         <option value="action_required">待处置</option>
         <option value="review">复核中</option>
         <option value="closed">已关闭</option>
+        <option value="merged">已并入主信号</option>
       </select>
     </label>
     <label>

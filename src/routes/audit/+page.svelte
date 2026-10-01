@@ -2,14 +2,16 @@
   import { signalStore } from '$lib/stores/signal-store';
 
   $: signals = $signalStore;
-  $: auditEntries = signals
+  // 来源信号的审计已并入主信号，时间线只统计主信号，避免同一记录出现两次
+  $: auditSignals = signals.filter((signal) => signal.status !== 'merged');
+  $: auditEntries = auditSignals
     .flatMap((signal) => signal.audit.map((entry) => ({ ...entry, signalId: signal.id, product: signal.product })))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   function exportAll() {
     const payload = {
       generatedAt: new Date().toISOString(),
-      signals: signals.map((signal) => ({
+      signals: auditSignals.map((signal) => ({
         id: signal.id,
         product: signal.product,
         batch: signal.batch,

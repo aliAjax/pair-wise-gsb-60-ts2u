@@ -97,6 +97,130 @@ export const seedSignals: SignalCase[] = [
     reopenedCount: 0
   },
   {
+    id: 'SIG-2026-020',
+    title: '客服投诉：输液泵使用一周后频繁阻塞报警',
+    product: '智能输液泵 IP-800',
+    batch: 'IP8-260401',
+    sourceType: 'complaint',
+    status: 'new',
+    riskLevel: 'medium',
+    severity: 3,
+    reportCount: 6,
+    exposedUnits: 512,
+    occurrenceRate: 1.17,
+    occurredAt: '2026-09-26',
+    openedAt: '2026-09-27T01:30:00.000Z',
+    updatedAt: '2026-09-29T03:10:00.000Z',
+    owner: '韩笑',
+    description: '三家医院客服投诉装机约一周后阻塞报警频发，描述与在查的管路批次问题高度相似，待确认是否同一故障。',
+    affectedBatches: ['IP8-260401'],
+    evidence: [
+      {
+        id: 'E-020-01',
+        type: 'complaint',
+        title: '客服热线 6 起阻塞报警投诉',
+        source: '客服工单系统',
+        strength: 'moderate',
+        batch: 'IP8-260401',
+        note: '投诉均提及报警时间在第 7 天前后，尚未取得设备日志。',
+        createdAt: '2026-09-27T02:00:00.000Z'
+      }
+    ],
+    tasks: [
+      {
+        id: 'T-020-01',
+        title: '调取 6 起投诉设备的报警日志',
+        owner: '韩笑',
+        dueAt: '2026-10-04',
+        status: 'open'
+      }
+    ],
+    versions: [
+      {
+        id: 'V-020-01',
+        version: 1,
+        author: '韩笑',
+        summary: '初判与管路批次相关，建议与既有阻塞报警信号并案核查。',
+        disposition: 'continue_observation',
+        rationale: '故障现象与时间窗吻合，但缺少设备侧证据。',
+        createdAt: '2026-09-29T03:05:00.000Z'
+      }
+    ],
+    audit: [
+      {
+        id: 'A-020-01',
+        actor: '韩笑',
+        action: '建立信号',
+        detail: '由客服投诉聚类建立，等待与维修侧记录比对。',
+        createdAt: '2026-09-27T01:30:00.000Z'
+      }
+    ],
+    reopenedCount: 0,
+    revision: 3
+  },
+  {
+    id: 'SIG-2026-021',
+    title: '现场服务报告：IP-800 阻塞报警伴随压力读数漂移',
+    product: '智能输液泵 IP-800',
+    batch: 'IP8-260403',
+    sourceType: 'field_report',
+    status: 'investigating',
+    riskLevel: 'high',
+    severity: 4,
+    reportCount: 4,
+    exposedUnits: 180,
+    occurrenceRate: 2.22,
+    occurredAt: '2026-09-24',
+    openedAt: '2026-09-25T07:40:00.000Z',
+    updatedAt: '2026-09-30T01:20:00.000Z',
+    owner: '赵珂',
+    description: '现场工程师在两家医院观察到阻塞报警与压力传感器读数漂移同时出现，覆盖相邻批号，疑为同一故障的现场表现。',
+    affectedBatches: ['IP8-260403'],
+    evidence: [
+      {
+        id: 'E-021-01',
+        type: 'field_report',
+        title: '现场服务记录 F-802 压力漂移照片与日志',
+        source: '现场服务报告 F-802',
+        strength: 'strong',
+        batch: 'IP8-260403',
+        note: '报警瞬间压力基线偏移约 12%，重启后短暂恢复。',
+        createdAt: '2026-09-25T08:10:00.000Z'
+      },
+      {
+        id: 'E-021-02',
+        type: 'repair',
+        title: '现场更换传感器维修单 2 份',
+        source: '维修工单 WO-33607',
+        strength: 'moderate',
+        batch: 'IP8-260403',
+        note: '更换后未复现，但样本量小，不能排除管路因素。',
+        createdAt: '2026-09-29T06:45:00.000Z'
+      }
+    ],
+    tasks: [
+      {
+        id: 'T-021-01',
+        title: '对比 260401/260403 两批传感器供应商批次',
+        owner: '赵珂',
+        dueAt: '2026-10-06',
+        status: 'in_progress'
+      }
+    ],
+    versions: [],
+    audit: [
+      {
+        id: 'A-021-01',
+        actor: '赵珂',
+        action: '转入调查',
+        detail: '现场证据支持压力传感器方向，与主信号装配假设需要合并比对。',
+        createdAt: '2026-09-26T02:00:00.000Z'
+      }
+    ],
+    reopenedCount: 0,
+    revision: 2
+  },
+  {
     id: 'SIG-2026-015',
     title: '监护仪电池续航低于标称值',
     product: '多参数监护仪 M12',

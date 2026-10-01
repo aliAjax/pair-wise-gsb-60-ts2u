@@ -6,7 +6,8 @@ export const signalStatuses = [
   'observed',
   'action_required',
   'review',
-  'closed'
+  'closed',
+  'merged'
 ] as const;
 
 export const riskLevels = ['low', 'medium', 'high', 'critical'] as const;
@@ -47,6 +48,17 @@ export const versionSchema = z.object({
   rationale: z.string().trim().min(6, '请填写判断依据')
 });
 
+export const mergeSchema = z.object({
+  primaryId: z.string().min(1, '请选择主信号'),
+  sourceIds: z
+    .array(z.string().min(1))
+    .min(1, '至少选择一个来源信号')
+    .refine((ids) => new Set(ids).size === ids.length, '来源信号重复'),
+  actor: z.string().trim().min(2, '请填写负责人'),
+  reason: z.string().trim().min(6, '合并依据至少 6 个字符'),
+  baseRevisions: z.record(z.string(), z.number().int().nonnegative())
+});
+
 export type SignalStatus = (typeof signalStatuses)[number];
 export type RiskLevel = (typeof riskLevels)[number];
 export type EvidenceStrength = (typeof evidenceStrengths)[number];
@@ -62,6 +74,8 @@ export interface EvidenceItem {
   batch: string;
   note: string;
   createdAt: string;
+  /** 接入自主信号之外的来源信号时，记录来源信号号，用于证据矩阵追溯 */
+  originSignalId?: string;
 }
 
 export interface InvestigationTask {
@@ -70,6 +84,8 @@ export interface InvestigationTask {
   owner: string;
   dueAt: string;
   status: 'open' | 'in_progress' | 'done';
+  /** 合并接入的调查任务保留来源信号号 */
+  originSignalId?: string;
 }
 
 export interface CaseVersion {
@@ -80,6 +96,8 @@ export interface CaseVersion {
   disposition: Disposition;
   rationale: string;
   createdAt: string;
+  /** 来源信号的结论版本并排保留，不替换主信号既有结论；复核人据此比对 */
+  originSignalId?: string;
 }
 
 export interface AuditEntry {
@@ -88,6 +106,53 @@ export interface AuditEntry {
   action: string;
   detail: string;
   createdAt: string;
+}
+
+/** 合并写入的最小单元。逐项落盘保证失败后可从断点续做，重试不重复接入。 */
+export interface MergeItem {
+  id: string;
+  kind:
+    | 'primary_evidence'
+    | 'primary_task'
+    | 'primary_version'
+    | 'primary_batch'
+    | 'primary_audit'
+    | 'source_redirect'
+    | 'primary_finalize';
+  signalId: string;
+  payload: unknown;
+  status: 'pending' | 'done' | 'conflict';
+  error?: string;
+}
+
+export interface MergeJournal {
+  id: string;
+  primaryId: string;
+  sourceIds: string[];
+  actor: string;
+  reason: string;
+  createdAt: string;
+  finishedAt?: string;
+  status: 'prepared' | 'running' | 'completed' | 'failed' | 'conflict';
+  items: MergeItem[];
+  /** 计划合并时各信号的版本号，用于乐观并发校验 */
+  baseRevisions: Record<string, number>;
+  /** 失败/冲突时展示给后到方的冲突明细 */
+  conflictDetail?: string;
+}
+
+export interface MergeConflict {
+  signalId: string;
+  expected: number;
+  actual: number;
+  reason: string;
+}
+
+export interface MergePlanResult {
+  ok: boolean;
+  journal?: MergeJournal;
+  conflicts?: MergeConflict[];
+  message?: string;
 }
 
 export interface SignalCase {
@@ -113,6 +178,14 @@ export interface SignalCase {
   versions: CaseVersion[];
   audit: AuditEntry[];
   reopenedCount: number;
+  /** 乐观并发版本号：任何写入（含另一个页签）都会 +1，保存时核对 */
+  revision?: number;
+  /** 被合并后指向主信号；原信号保留为只读去向 */
+  mergedInto?: string;
+  /** 主信号记录并入的来源信号号 */
+  mergedFrom?: string[];
+  mergedAt?: string;
+  mergedBy?: string;
 }
 
 export interface SignalFilters {

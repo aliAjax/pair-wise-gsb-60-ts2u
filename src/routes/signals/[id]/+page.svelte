@@ -5,6 +5,7 @@
   import RiskBadge from '$lib/components/RiskBadge.svelte';
   import type { AuditEntry, CaseVersion, EvidenceItem, SignalStatus } from '$lib/models/signal';
   import { exportSignalReport } from '$lib/services/signal-service';
+  import { isReadOnly } from '$lib/services/merge-service';
   import { signalStore } from '$lib/stores/signal-store';
   import type { ActionData, PageData } from './$types';
 
@@ -13,6 +14,8 @@
 
   $: signal = $signalStore.find((item) => item.id === data.id);
   $: nextVersion = (signal?.versions[0]?.version ?? 0) + 1;
+  $: readOnly = signal ? isReadOnly(signal) : false;
+  $: primaryHasVersion = (signal?.versions.filter((version) => !version.originSignalId).length ?? 0) > 0;
 
   const statusOptions: Array<{ value: SignalStatus; label: string }> = [
     { value: 'investigating', label: '转入调查' },
@@ -68,6 +71,39 @@
     <div class="mb-5 rounded border border-error-300 bg-error-50 p-3 text-sm text-error-900">{form.message}</div>
   {/if}
 
+  {#if readOnly}
+    <section class="mb-6 rounded border border-teal-300 bg-teal-50 p-4 dark:border-teal-700 dark:bg-teal-950">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-semibold text-teal-900 dark:text-teal-200">该信号已并入主信号（只读去向）</h2>
+          <p class="mt-1 text-sm text-teal-800 dark:text-teal-300">
+            证据矩阵、调查任务、结论版本与审计记录已于 {signal.mergedAt?.slice(0, 16).replace('T', ' ')}
+            由 {signal.mergedBy} 并入 <span class="font-medium">{signal.mergedInto}</span>；原信号保留备查，不再接受写入。
+          </p>
+        </div>
+        <a class="btn variant-filled-primary btn-sm" href={`/signals/${signal.mergedInto}`}>前往主信号 {signal.mergedInto}</a>
+      </div>
+    </section>
+  {/if}
+
+  {#if signal.mergedFrom?.length}
+    <section class="mb-6 rounded border border-surface-300-700 bg-surface-100-900 p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-semibold">合并来源</h2>
+          <p class="mt-1 text-xs text-surface-500-400">
+            以下来源信号的证据、任务、结论与审计已接入本主信号，原信号保留为只读去向。
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {#each signal.mergedFrom as sourceId}
+            <a class="btn btn-sm variant-ghost-surface" href={`/signals/${sourceId}`}>{sourceId}</a>
+          {/each}
+        </div>
+      </div>
+    </section>
+  {/if}
+
   <section class="workspace-grid mb-6">
     <article class="col-span-12 rounded border border-surface-300-700 bg-surface-100-900 p-4 xl:col-span-8">
       <div class="grid gap-5 md:grid-cols-2">
@@ -98,12 +134,17 @@
     <aside class="col-span-12 rounded border border-surface-300-700 bg-surface-100-900 p-4 xl:col-span-4">
       <h2 class="font-semibold">状态流转</h2>
       <p class="mt-1 text-xs text-surface-500-400">每次流转都记录依据、操作人和时间。</p>
-      <form
-        class="mt-4 space-y-3"
-        method="POST"
-        action="?/transition"
-        use:enhance={transitionHandler}
-      >
+      {#if readOnly}
+        <p class="mt-4 rounded bg-surface-200-800 p-3 text-sm text-surface-600-300">
+          信号已并入主信号，状态流转已锁定。如需继续调查，请在主信号 {signal.mergedInto} 上操作。
+        </p>
+      {:else}
+        <form
+          class="mt-4 space-y-3"
+          method="POST"
+          action="?/transition"
+          use:enhance={transitionHandler}
+        >
         <input type="hidden" name="id" value={signal.id} />
         <label class="block">
           <span class="mb-1 block text-sm font-medium">目标状态</span>
@@ -124,31 +165,32 @@
         <button class="btn w-full variant-filled-primary" type="submit">提交状态流转</button>
       </form>
 
-      {#if signal.status === 'closed'}
-        <div class="section-rule mt-5 pt-5">
-          <h3 class="font-medium">新事件重新打开</h3>
-          <p class="mt-1 text-xs text-surface-500-400">关闭信号收到新报告时，不允许静默修改结论。</p>
-          <form
-            class="mt-3 space-y-3"
-            method="POST"
-            action="?/reopen"
-            use:enhance={() =>
-              async ({ result, update }) => {
-                if (result.type === 'success') {
-                  const payload = result.data as { reopen?: { id: string; actor: string; reason: string } };
-                  if (payload.reopen) {
-                    signalStore.reopen(payload.reopen.id, payload.reopen.actor, payload.reopen.reason);
+        {#if signal.status === 'closed'}
+          <div class="section-rule mt-5 pt-5">
+            <h3 class="font-medium">新事件重新打开</h3>
+            <p class="mt-1 text-xs text-surface-500-400">关闭信号收到新报告时，不允许静默修改结论。</p>
+            <form
+              class="mt-3 space-y-3"
+              method="POST"
+              action="?/reopen"
+              use:enhance={() =>
+                async ({ result, update }) => {
+                  if (result.type === 'success') {
+                    const payload = result.data as { reopen?: { id: string; actor: string; reason: string } };
+                    if (payload.reopen) {
+                      signalStore.reopen(payload.reopen.id, payload.reopen.actor, payload.reopen.reason);
+                    }
                   }
-                }
-                await update({ reset: true });
-              }}
-          >
-            <input type="hidden" name="id" value={signal.id} />
-            <input class="input" name="actor" value={signal.owner} aria-label="操作人" />
-            <textarea class="textarea" name="reason" rows="2" placeholder="描述新报告及其影响"></textarea>
-            <button class="btn w-full variant-soft-error" type="submit">重新打开信号</button>
-          </form>
-        </div>
+                  await update({ reset: true });
+                }}
+            >
+              <input type="hidden" name="id" value={signal.id} />
+              <input class="input" name="actor" value={signal.owner} aria-label="操作人" />
+              <textarea class="textarea" name="reason" rows="2" placeholder="描述新报告及其影响"></textarea>
+              <button class="btn w-full variant-soft-error" type="submit">重新打开信号</button>
+            </form>
+          </div>
+        {/if}
       {/if}
     </aside>
   </section>
@@ -164,22 +206,75 @@
     <EvidenceMatrix evidence={signal.evidence} />
   </section>
 
+  <section class="mb-6 rounded border border-surface-300-700 bg-surface-100-900">
+    <div class="flex items-center justify-between border-b border-surface-300-700 px-4 py-3">
+      <div>
+        <h2 class="text-lg font-semibold">调查任务</h2>
+        <p class="mt-1 text-sm text-surface-500-400">来源信号并入的任务保留原负责人，并标注来源信号号。</p>
+      </div>
+      <span class="badge">{signal.tasks.length} 个任务</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table min-w-[720px]">
+        <thead>
+          <tr>
+            <th>任务</th>
+            <th>负责人</th>
+            <th>截止日</th>
+            <th>状态</th>
+            <th>来源</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each signal.tasks as task}
+            <tr>
+              <td class="font-medium">{task.title}</td>
+              <td>{task.owner}</td>
+              <td class="metric-value">{task.dueAt}</td>
+              <td>
+                {task.status === 'done'
+                  ? '已完成'
+                  : task.status === 'in_progress'
+                    ? '进行中'
+                    : '待开始'}
+              </td>
+              <td>
+                {#if task.originSignalId}
+                  <a class="text-xs font-medium text-amber-700 hover:underline" href={`/signals/${task.originSignalId}`}>
+                    合并自 {task.originSignalId}
+                  </a>
+                {:else}
+                  <span class="text-xs text-surface-500-400">主信号</span>
+                {/if}
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <div class="grid gap-6 xl:grid-cols-2">
     <section class="rounded border border-surface-300-700 bg-surface-100-900 p-4">
       <h2 class="font-semibold">补充核查证据</h2>
-      <form
-        class="mt-4 grid gap-4 md:grid-cols-2"
-        method="POST"
-        action="?/evidence"
-        use:enhance={() =>
-          async ({ result, update }) => {
-            if (result.type === 'success') {
-              const payload = result.data as { evidence?: EvidenceItem; actor?: string };
-              if (payload.evidence) signalStore.addEvidence(signal.id, payload.evidence, payload.actor ?? signal.owner);
-            }
-            await update({ reset: true });
-          }}
-      >
+      {#if readOnly}
+        <p class="mt-3 rounded bg-surface-200-800 p-3 text-sm text-surface-600-300">
+          原信号只读，证据补充请在主信号 {signal.mergedInto} 上进行。
+        </p>
+      {:else}
+        <form
+          class="mt-4 grid gap-4 md:grid-cols-2"
+          method="POST"
+          action="?/evidence"
+          use:enhance={() =>
+            async ({ result, update }) => {
+              if (result.type === 'success') {
+                const payload = result.data as { evidence?: EvidenceItem; actor?: string };
+                if (payload.evidence) signalStore.addEvidence(signal.id, payload.evidence, payload.actor ?? signal.owner);
+              }
+              await update({ reset: true });
+            }}
+        >
         <input type="hidden" name="id" value={signal.id} />
         <label>
           <span class="mb-1 block text-sm font-medium">证据类型</span>
@@ -224,24 +319,30 @@
         <div class="md:col-span-2">
           <button class="btn variant-filled-primary" type="submit">加入证据矩阵</button>
         </div>
-      </form>
+        </form>
+      {/if}
     </section>
 
     <section class="rounded border border-surface-300-700 bg-surface-100-900 p-4">
       <h2 class="font-semibold">形成结论版本</h2>
-      <form
-        class="mt-4 grid gap-4 md:grid-cols-2"
-        method="POST"
-        action="?/version"
-        use:enhance={() =>
-          async ({ result, update }) => {
-            if (result.type === 'success') {
-              const payload = result.data as { version?: CaseVersion; actor?: string };
-              if (payload.version) signalStore.addVersion(signal.id, payload.version, payload.actor ?? signal.owner);
-            }
-            await update({ reset: true });
-          }}
-      >
+      {#if readOnly}
+        <p class="mt-3 rounded bg-surface-200-800 p-3 text-sm text-surface-600-300">
+          原信号只读，结论版本仅作为来源记录保留并已并排接入主信号 {signal.mergedInto}。
+        </p>
+      {:else}
+        <form
+          class="mt-4 grid gap-4 md:grid-cols-2"
+          method="POST"
+          action="?/version"
+          use:enhance={() =>
+            async ({ result, update }) => {
+              if (result.type === 'success') {
+                const payload = result.data as { version?: CaseVersion; actor?: string };
+                if (payload.version) signalStore.addVersion(signal.id, payload.version, payload.actor ?? signal.owner);
+              }
+              await update({ reset: true });
+            }}
+        >
         <input type="hidden" name="id" value={signal.id} />
         <input type="hidden" name="versionNumber" value={nextVersion} />
         <label>
@@ -267,18 +368,33 @@
         <div class="md:col-span-2">
           <button class="btn variant-filled-secondary" type="submit">保存为 V{nextVersion}</button>
         </div>
-      </form>
+        </form>
+      {/if}
     </section>
   </div>
 
   <div class="mt-6 grid gap-6 xl:grid-cols-2">
     <section class="rounded border border-surface-300-700 bg-surface-100-900 p-4">
       <h2 class="font-semibold">结论版本</h2>
+      {#if primaryHasVersion}
+        <p class="mt-1 text-xs text-surface-500-400">
+          主信号结论与来源信号结论并排保留：来源结论供复核人比对，不替换主信号结论。
+        </p>
+      {/if}
       <div class="mt-4 space-y-4">
         {#each signal.versions as version}
-          <article class="border-l-2 border-teal-600 pl-4">
+          <article
+            class="border-l-2 pl-4 {version.originSignalId ? 'border-amber-500' : 'border-teal-600'}"
+          >
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="font-medium">V{version.version} · {version.author}</p>
+              <p class="font-medium">
+                V{version.version} · {version.author}
+                {#if version.originSignalId}
+                  <span class="badge variant-soft-warning ml-2">来源结论 · {version.originSignalId}</span>
+                {:else}
+                  <span class="badge variant-soft-success ml-2">主信号结论</span>
+                {/if}
+              </p>
               <span class="text-xs text-surface-500-400">{version.createdAt.slice(0, 10)}</span>
             </div>
             <p class="mt-2 text-sm">{version.summary}</p>

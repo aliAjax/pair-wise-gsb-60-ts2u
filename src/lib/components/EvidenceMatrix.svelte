@@ -37,10 +37,13 @@
         <span class="badge">{strengthLabels[item.strength]}</span>
       </div>
       <p class="mt-3 text-sm text-surface-600-300">{item.note}</p>
-      <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-surface-500-400">
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-surface-500-400">
         <span>来源：{item.source}</span>
         <span>批号：{item.batch}</span>
         <span>录入：{item.createdAt.slice(0, 10)}</span>
+        {#if item.originSignalId}
+          <span class="font-medium text-teal-700">合并自 {item.originSignalId}</span>
+        {/if}
       </div>
     </article>
   {/each}
